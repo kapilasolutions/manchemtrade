@@ -9,71 +9,60 @@ on:
 jobs:
   backend-tdd:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .
     steps:
       - uses: actions/checkout@v4
-      
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
-      
       - name: Install backend deps
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
-          # Ensure test deps
           pip install pytest httpx
-          python -m pytest --version
-      
       - name: Run backend TDD - 15 tests
         env:
           DRY_RUN: "true"
           TRADIER_TOKEN: ""
         run: |
-          python -m pytest backend/tests/ -v --tb=short
-          echo "✅ Backend TDD: 15 tests must be green"
+          python -m pytest backend/tests/ -v
 
   frontend-tdd:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
       - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package.json
-      
-      - name: Install frontend
+          # No cache path - fixes "Some specified paths were not resolved"
+      - name: Check frontend exists
+        run: |
+          ls -la frontend/ || echo "no frontend dir"
+          cat frontend/package.json 2>/dev/null || echo "no package.json - skipping cache"
+      - name: Install frontend (if exists)
         working-directory: frontend
         run: |
-          npm install || npm install --legacy-peer-deps || echo "no package.json, skipping"
-      
-      - name: Run frontend TDD
-        working-directory: .
+          if [ -f package.json ]; then npm install; else echo "No package.json, skipping npm install"; fi
+      - name: Run frontend TDD (if exists)
         run: |
-          npx vitest run frontend/tests/ --reporter=verbose || echo "frontend tests completed"
-          echo "✅ Frontend TDD done"
+          if [ -f frontend/package.json ]; then npx vitest run frontend/tests/ --reporter=verbose; else echo "No frontend tests, marking green"; fi
+          echo "✅ Frontend step done"
 
   e2e-smoke:
-    needs: backend-tdd
+    needs: [backend-tdd, frontend-tdd]
     runs-on: ubuntu-latest
-    if: success()
+    if: always()
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install playwright
+      - name: Install playwright (optional)
         run: |
           npm install -g playwright || true
           npx playwright install --with-deps chromium || true
-      - name: Run e2e smoke (optional)
+      - name: Run e2e smoke
         run: |
-          npx playwright test --reporter=list || echo "e2e smoke - optional"
+          npx playwright test --reporter=list || echo "e2e optional - green"
