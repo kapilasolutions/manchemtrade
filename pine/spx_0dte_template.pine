@@ -1,0 +1,6 @@
+//@version=5
+strategy("ManchemTrade SPX 0DTE Template", overlay=true)
+secret = input.string("wh_your_secret_here", "Webhook Secret")
+rsi = ta.rsi(close, 14)
+if ta.crossover(rsi, 30)
+    alert('{"secret": "'+secret+'", "ticker":"SPX", "quantity":1, "alert_id": str.tostring(time)}', alert.freq_once_per_bar_close)
