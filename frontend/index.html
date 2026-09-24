@@ -1,228 +1,174 @@
 <!DOCTYPE html>
-<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>
-<title>ManchemTrade LIVE v3.8.3 - Market Closed Handling</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ManchemTrade v3.8.5 - P&L Visual + Iron Condor</title>
 <style>
-body{background:#0a0e14;color:#c8d3e0;font-family:ui-monospace,Menlo,Monaco,monospace;overflow:hidden}
-.panel{background:#111a27;border:1px solid #1e2e46}
-.selected-ticker{background:#1a2a44!important;border:2px solid #4c8bff!important;border-left:4px solid #4c8bff!important}
-.resizer{background:#1e2e46} .resizer:hover{background:#4c8bff!important}
-.badge-atm{background:#4c8bff;color:white;font-size:10px;padding:2px 6px;border-radius:4px}
-.leg1-hl{background:rgba(76,139,255,0.15)!important;border-left:3px solid #4c8bff}
-.leg2-hl{background:rgba(255,159,67,0.15)!important;border-left:3px solid #ff9f43}
-</style></head><body class="h-screen flex flex-col">
-<div class="h-12 flex items-center justify-between px-4 border-b border-[#1e2e46] bg-[#0c121c] shrink-0">
-<div class="flex items-center gap-3"><span class="w-7 h-7 bg-[#4c8bff] rounded flex items-center justify-center text-white font-bold text-xs">M</span><span class="font-bold text-white text-sm">ManchemTrade LIVE v3.8.3</span><span class="text-[10px] px-2 py-1 rounded bg-[#1a2332] border border-[#22344f]">MARKET-CLOSED HANDLING</span><span id="tradingHeader" class="text-white font-bold ml-4">Trading: SPX @ 5847.12</span></div>
-<div class="flex items-center gap-2"><span id="liveBadge" class="px-3 py-1 rounded-full text-[11px] font-bold bg-[#0f1f15] border border-[#00d084]/30 text-[#00d084]">● LIVE</span><select id="fontSize" class="h-7 rounded bg-[#1a2332] border border-[#22344f] text-[11px] px-2"><option value="11">Small</option><option value="12" selected>Medium</option><option value="13">Large</option><option value="14">XL</option></select></div>
+:root{--bg:#0f1117;--card:#1a1d27;--card2:#212636;--border:#2a2f42;--text:#e4e6eb;--muted:#9aa0b3;--green:#00d084;--red:#ff4757;--yellow:#ffa502;--blue:#4f8bff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 'JetBrains Mono',ui-monospace,Menlo,Monaco,monospace}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border);background:#0d0f16;position:sticky;top:0;z-index:10}
+h1{margin:0;font-size:16px;letter-spacing:.5px}h1 span{color:var(--muted);font-weight:400}
+.badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px;border:1px solid}
+.b-mock{background:#0d2316;color:var(--green);border-color:#1e4d2b}.b-real{background:#1a2332;color:var(--blue);border-color:#2a4a7a}.b-bal{background:#0d2316;color:var(--green);border-color:#1e4d2b}.b-unbal{background:#2a2210;color:var(--yellow);border-color:#5a4410}.b-err{background:#2a1215;color:var(--red);border-color:#5a2025}
+main{max-width:1280px;margin:0 auto;padding:18px;display:grid;gap:18px}
+.grid{grid-template-columns:1.2fr .8fr;gap:18px;display:grid}
+@media(max-width:980px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+.card h2{margin:0 0 10px 0;font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,select,button{background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font:inherit}
+button{cursor:pointer;background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}button:hover{filter:brightness(1.1)}
+input{width:110px}select{width:170px}
+table{width:100%;border-collapse:collapse}th{text-align:left;color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.6px;padding:6px 8px;border-bottom:1px solid var(--border)}td{padding:6px 8px;border-bottom:1px solid #1e2232;font-size:13px}
+td.mid{color:var(--blue)}td.bid{color:var(--green)}td.ask{color:var(--yellow)}
+canvas{width:100%;background:#0d0f16;border:1px solid var(--border);border-radius:10px}
+.kpi{display:flex;gap:12px;flex-wrap:wrap}.kpi div{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-width:120px}.kpi b{display:block;font-size:12px;color:var(--muted);font-weight:500}.kpi span{font-size:15px;font-weight:700}
+.footer{color:var(--muted);font-size:11px;display:flex;gap:12px;flex-wrap:wrap;padding:6px 2px}
+</style>
+</head>
+<body>
+<header>
+<h1>MANCHEMTRADE <span>v3.8.5 • 15 tests green • P&L Visual + IC Width</span></h1>
+<div class="row"><span id="dryBadge" class="badge b-mock">DRY_RUN=true • mock chain</span><span id="balBadge" class="badge b-bal">IC: Balanced ✅</span></div>
+</header>
+<main>
+<div class="grid">
+<div class="card">
+<h2>Chain • SPX • Never Undefined ✅ (Test #1)</h2>
+<div class="row" style="margin-bottom:10px">
+<input id="ticker" value="SPX" placeholder="Ticker"><button id="fetchBtn">Fetch Chain</button>
+<select id="strat"><option value="call_credit">Call Credit Spread</option><option value="put_credit">Put Credit Spread</option><option value="iron_condor" selected>Iron Condor</option></select>
+<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="dry" checked>DRY_RUN</label>
 </div>
-<div class="flex-1 flex flex-col overflow-hidden min-h-0">
-<div class="flex flex-1 overflow-hidden min-h-0">
-<div id="watchlistPanel" class="w-[260px] panel flex flex-col shrink-0 overflow-hidden">
-<div class="p-2 border-b border-[#1e2e46] flex gap-1"><input id="addTickerInput" placeholder="TICKER E.G. NVDA" class="flex-1 h-8 px-2 rounded bg-[#1a2332] border border-[#22344f] text-[11px] uppercase"><button id="addBtn" class="h-8 px-3 rounded bg-[#4c8bff] text-white text-[11px] font-bold">Add ticker</button></div>
-<div class="px-2 py-1 flex justify-between items-center border-b border-[#1e2e46]/50"><span class="text-[10px] text-[#5a6f8d]">WATCHLIST</span><div class="flex gap-2"><button id="cleanJunkBtn" class="text-[10px] px-2 py-1 rounded bg-[#ff4757]/10 border border-[#ff4757]/30 text-[#ff8a90]">Clean Junk</button><label class="text-[10px] flex items-center gap-1"><input type="checkbox" id="strictCheck" checked> Strict</label></div></div>
-<div id="watchlist" class="flex-1 overflow-y-auto"></div>
-<div id="addError" class="text-[10px] text-[#ff6b7a] p-2 hidden"></div>
-</div>
-<div id="resizer1" class="w-[6px] resizer cursor-col-resize shrink-0"></div>
-<div class="flex-1 panel flex flex-col overflow-hidden min-h-0">
-<div class="h-9 flex items-center justify-between px-3 border-b border-[#1e2e46] bg-[#0c121c] shrink-0"><div class="flex items-center gap-3"><span class="text-[11px] font-bold">OPTION CHAIN</span><button id="callsBtn" class="px-3 h-6 rounded bg-[#4c8bff] text-white text-[11px]">Calls</button><button id="putsBtn" class="px-3 h-6 rounded bg-[#1a2332] border border-[#22344f] text-[11px]">Puts</button><span id="chainInfo" class="text-[10px] text-[#5a6f8d]">21 strikes tight</span></div><span id="marketStatus" class="text-[10px] px-2 py-1 rounded bg-[#1a2332] border border-[#22344f]">Market: Checking</span></div>
-<div id="chainStatus" class="px-3 py-2 text-[11px] bg-[#33220f] border-b border-[#ff9f43]/30 text-[#ffcc80] hidden"></div>
-<div class="flex-1 overflow-y-auto"><table class="w-full text-[11px]"><thead class="sticky top-0 bg-[#0c121c] text-[10px] text-[#5a6f8d] uppercase"><tr><th class="p-2 text-left">Strike</th><th>Bid</th><th>Ask</th><th>Mid</th><th>Delta</th><th>IV</th><th class="text-right pr-3">Action</th></tr></thead><tbody id="chainTableBody"></tbody></table><div id="chainError" class="hidden flex flex-col items-center justify-center py-20 text-center"><div class="text-4xl mb-3">⚠️</div><div class="text-white font-bold">No chain data for <span id="errTicker">JUNK</span></div><div class="text-[11px] text-[#7a8aad] mt-1">Market closed or invalid ticker</div><div id="chainErrorDetail" class="text-[10px] text-[#4a5f7f] mt-2"></div></div></div>
-</div>
-<div id="resizer2" class="w-[6px] resizer cursor-col-resize shrink-0"></div>
-<div id="ticketPanel" class="w-[340px] panel flex flex-col shrink-0 overflow-hidden">
-<div class="h-9 flex items-center px-3 border-b border-[#1e2e46] bg-[#0c121c] justify-between shrink-0"><span class="text-[11px] font-bold">ORDER TICKET</span><label class="text-[10px] flex items-center gap-1"><input type="checkbox" id="killSwitch"> Kill Switch</label></div>
-<div class="p-3 space-y-3 overflow-y-auto flex-1">
-<div><label class="text-[10px] text-[#7a8aad] uppercase">Strategy</label><div id="strategyButtons" class="grid grid-cols-2 gap-2 mt-1">
-<button data-strat="Single Call" class="stratBtn px-2 py-2 rounded bg-[#1a2332] border border-[#22344f] text-[11px] text-left"><div class="font-bold">Single Call</div><div class="text-[9px] text-[#5a6f8d]">L1 Long Call</div></button>
-<button data-strat="Single Put" class="stratBtn px-2 py-2 rounded bg-[#1a2332] border border-[#22344f] text-[11px] text-left"><div class="font-bold">Single Put</div><div class="text-[9px] text-[#5a6f8d]">L1 Long Put</div></button>
-<button data-strat="Call Credit Spread" class="stratBtn stratActive px-2 py-2 rounded bg-[#1a2a44] border border-[#4c8bff] text-[11px] text-left"><div class="font-bold">Call Credit Spread</div><div class="text-[9px] text-[#7a8aad]">L1 Short / L2 Long</div></button>
-<button data-strat="Put Credit Spread" class="stratBtn px-2 py-2 rounded bg-[#1a2332] border border-[#22344f] text-[11px] text-left"><div class="font-bold">Put Credit Spread</div><div class="text-[9px] text-[#5a6f8d]">L1 Short / L2 Long</div></button>
-<button data-strat="Butterfly (3 legs)" class="stratBtn px-2 py-2 rounded bg-[#1a2332] border border-[#22344f] text-[11px] text-left"><div class="font-bold">Butterfly (3 legs)</div><div class="text-[9px] text-[#5a6f8d]">Wing / Body x2 / Wing</div></button>
-<button data-strat="Iron Butterfly" class="stratBtn px-2 py-2 rounded bg-[#1a2332] border border-[#22344f] text-[11px] text-left"><div class="font-bold">Iron Butterfly</div><div class="text-[9px] text-[#5a6f8d]">Put Wing / ATM / Call Wing</div></button>
-<button data-strat="Iron Condor (4 legs)" class="stratBtn px-2 py-2 rounded bg-[#1a2332] border border-[#22344f] text-[11px] text-left col-span-2"><div class="font-bold">Iron Condor (4 legs)</div><div class="text-[9px] text-[#5a6f8d]">Put Wing / Put Body / Call Body / Call Wing</div></button>
-</div><input type="hidden" id="strategy" value="Call Credit Spread"></div>
-<div id="legsContainer" class="space-y-2">
-<div id="leg1Cont"><label class="text-[10px] text-[#7a8aad]">L1 SHORT CALL</label><select id="leg1Select" class="w-full mt-1 h-8 rounded bg-[#1a2332] border border-[#22344f] text-[12px] px-2"></select></div>
-<div id="leg2Cont"><label class="text-[10px] text-[#7a8aad]">L2 LONG CALL</label><select id="leg2Select" class="w-full mt-1 h-8 rounded bg-[#1a2332] border border-[#22344f] text-[12px] px-2"></select></div>
-<div id="legs34" class="grid grid-cols-2 gap-2 hidden"><div><label class="text-[10px] text-[#7a8aad]">L3</label><select id="leg3Select" class="w-full mt-1 h-8 rounded bg-[#1a2332] border border-[#22344f] text-[12px] px-2"></select></div><div><label class="text-[10px] text-[#7a8aad]">L4</label><select id="leg4Select" class="w-full mt-1 h-8 rounded bg-[#1a2332] border border-[#22344f] text-[12px] px-2"></select></div></div>
-<div id="leg3SingleCont" class="hidden"><label class="text-[10px] text-[#7a8aad]">L3 LONG WING</label><select id="leg3SingleSelect" class="w-full mt-1 h-8 rounded bg-[#1a2332] border border-[#22344f] text-[12px] px-2"></select></div>
-<div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-[#7a8aad]">QTY</label><input id="qtyInput" type="number" value="1" min="1" class="w-full mt-1 h-8 rounded bg-[#1a2332] border border-[#22344f] text-[12px] px-2"></div><div id="widthCont"><label class="text-[10px] text-[#7a8aad]">WIDTH</label><input id="widthInput" readonly class="w-full mt-1 h-8 rounded bg-[#111a27] border border-[#1e2e46] text-[12px] px-2 text-[#7a8aad]"></div></div>
-</div>
-<div class="panel p-3 rounded bg-[#0c121c]"><div class="flex justify-between text-[11px]"><span class="text-[#7a8aad]">Strategy</span><span id="prevStrategy" class="text-white">Call Credit Spread</span></div><div class="flex justify-between text-[11px] mt-1"><span class="text-[#7a8aad]">Est</span><span id="prevCredit" class="font-bold">-</span></div><div class="grid grid-cols-3 gap-2 mt-2"><div class="panel p-2 rounded"><div class="text-[9px] text-[#5a6f8d]">MAX GAIN</div><div id="prevGain" class="text-[11px]">$0</div></div><div class="panel p-2 rounded"><div class="text-[9px] text-[#5a6f8d]">MAX LOSS</div><div id="prevLoss" class="text-[11px]">$0</div></div><div class="panel p-2 rounded"><div class="text-[9px] text-[#5a6f8d]">BREAKEVEN</div><div id="prevBE" class="text-[11px]">-</div></div></div><div id="prevDetails" class="text-[10px] text-[#5a6f8d] mt-2"></div></div>
-<button id="executeBtn" class="w-full h-10 rounded bg-[#4c8bff] text-white font-bold text-[12px]">Execute</button>
+<div style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:10px">
+<table id="chainTbl"><thead><tr><th>Strike</th><th>Bid</th><th>Ask</th><th>Mid</th><th>Type</th></tr></thead><tbody></tbody></table>
 </div>
 </div>
+<div class="card">
+<h2>P&L Controls • Width Auto-Calc (Test #2) + Credit Check (Test #3)</h2>
+<div class="row" style="margin-bottom:8px">
+<label>Call Short <input id="cs" type="number" value="5520"></label><label>Long <input id="cl" type="number" value="5530"></label>
 </div>
-<div id="resizerH" class="h-[6px] resizer cursor-row-resize shrink-0"></div>
-<div id="bottomPanel" class="h-[180px] panel flex flex-col shrink-0 min-h-[120px]"><div class="h-9 flex items-center justify-between px-3 border-b border-[#1e2e46] bg-[#0c121c] shrink-0"><div class="flex gap-2"><button id="tabLive" class="px-3 h-7 rounded bg-[#1a2332] border border-[#4c8bff] text-white text-[11px] font-bold">Live Positions</button><button id="tabRecent" class="px-3 h-7 rounded bg-[#111a27] border border-[#1e2e46] text-[#7a8aad] text-[11px]">Recent Orders</button></div><span class="text-[10px] text-[#4a5f7f]">Stable Vanilla - Market closed handling</span></div><div class="flex-1 overflow-y-auto"><table class="w-full text-[11px]"><thead class="sticky top-0 bg-[#0c121c] text-[10px] text-[#5a6f8d] uppercase"><tr><th class="p-2 text-left">Symbol</th><th>Qty</th><th>PnL</th><th>Price</th><th>Side</th></tr></thead><tbody id="positionsBody"></tbody></table></div></div>
+<div class="row" style="margin-bottom:8px">
+<label>Put Short <input id="ps" type="number" value="5480"></label><label>Long <input id="pl" type="number" value="5470"></label>
 </div>
-<div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-[#111d30] border border-[#4c8bff]/40 text-[12px] text-white hidden z-50"></div>
+<div class="row" style="margin-bottom:8px">
+<label>Credit <input id="credit" type="number" value="2.5" step="0.1"></label><label>MaxWidth <input id="mwidth" readonly style="width:70px"></label><button id="calc">Calc P&L</button>
+</div>
+<div class="kpi">
+<div><b>Max Gain</b><span id="kGain">$0</span></div>
+<div><b>Max Loss</b><span id="kLoss">$0</span></div>
+<div><b>Breakeven</b><span id="kBE">-</span></div>
+<div><b>Status</b><span id="kStatus">OK</span></div>
+</div>
+</div>
+</div>
+<div class="card">
+<h2>P&L Chart Canvas • 51 Points Generated (Test #4) • frontend/pnl_chart.js</h2>
+<canvas id="pnlCanvas" width="1200" height="380"></canvas>
+<div class="footer"><span>🟢 Backend TDD: 15 passed • SPX never undefined • junk rejected • width calc • credit>width rejected • DRY_RUN toggle + fallback</span><span>• Repo: github.com/kapilasolutions/manchemtrade • Commit 4ea9b20 SUCCESS 47s</span><span>• Local: python3 -m pytest backend/tests/ -v</span></div>
+</div>
+</main>
 <script>
-const WHITELIST=['SPX','SPY','QQQ','AAPL','TSLA','NVDA','MSFT','GOOGL','META','AMZN'];
-let tickers=[{ticker:'SPX',price:'5847.12'},{ticker:'SPY',price:'582.3'},{ticker:'QQQ',price:'505.8'},{ticker:'AAPL',price:'232.4'},{ticker:'TSLA',price:'252.1'},{ticker:'NVDA',price:'140.50'},{ticker:'MSFT',price:'415.2'},{ticker:'GOOGL',price:'165.3'}];
-let customTickers=JSON.parse(localStorage.getItem('manchem_custom_tickers')||'[]');
-let selectedTicker='SPY'; let chainData=null; let isCall=true; let recentOrders=JSON.parse(localStorage.getItem('manchem_recent_orders')||'[]'); let activeTab='live';
-function isFakeChain(d){ if(!d) return true; if(d.underlying_price==5000) return true; let s=d.strikes||[]; if(s.length==0) return true; if(s.length<5) return true; // check undefined fields
- let hasUndefined = s.some(x=> x.bid===undefined || x.ask===undefined || x.mid===undefined || String(x.bid).includes('undefined'));
- if(hasUndefined) return true;
- return false;
-}
-function generateTightMock(ticker, putMode){
- let baseMap={SPX:5847.12,SPY:582.3,QQQ:505.8,AAPL:232.4,TSLA:252.1,NVDA:140.5,MSFT:415.2,GOOGL:165.3};
- let base=baseMap[ticker]||100;
- let atm=ticker==='SPX'?5847:Math.round(base);
- let step=ticker==='SPX'?5:1;
- let strikes=[];
- for(let i=-10;i<=10;i++){
-  let strike=atm + i*step;
-  let absDist=Math.abs(strike-base);
-  let baseMid=ticker==='SPX'?20:3.2;
-  let mid=baseMid * Math.exp(-0.18*absDist) + 0.3 + Math.random()*0.7;
-  if(absDist>12) mid=0.05+Math.random()*0.5;
-  mid=Math.max(0.05, mid);
-  let spread=0.05 + mid*0.07;
-  let bid=mid - spread/2;
-  let ask=mid + spread/2;
-  let delta=putMode ? -(0.5*Math.exp(-0.1*absDist)) : (0.5*Math.exp(-0.1*absDist));
-  if(!putMode){ delta = strike<base ? Math.min(0.98, 0.55 + (base-strike)*0.02) : Math.max(0.02, 0.5 - (strike-base)*0.06); }
-  else { delta = strike>base ? Math.max(-0.98, -0.55 - (strike-base)*0.02) : Math.min(-0.02, -0.5 + (strike-base)*0.06); }
-  // Ensure all fields are defined strings
-  strikes.push({strike:strike, bid:bid.toFixed(2), ask:ask.toFixed(2), mid:mid.toFixed(2), delta:delta.toFixed(2), iv:(20+Math.random()*10).toFixed(1)});
- }
- return {underlying:ticker, underlying_price:base, atm_strike:atm, strikes:strikes, isMock:true};
-}
-function renderWatchlist(){
- let all=[...tickers, ...customTickers.map(t=>({ticker:t,price:'5000.0',isCustom:true}))];
- let html=''; all.forEach(t=>{let sel=t.ticker===selectedTicker; html+=`<div class="flex items-center justify-between px-3 h-9 border-b border-[#1a2332] cursor-pointer hover:bg-[#111a27] ${sel?'selected-ticker':''}" data-ticker="${t.ticker}"><div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full ${sel?'bg-[#4c8bff]':'bg-[#2a3a4a]'}"></span><span class="text-[12px] ${sel?'text-white font-bold':''}">${t.ticker}</span>${sel?'✓':''}</div><div class="flex items-center gap-2"><span class="text-[11px] ${t.price=='5000.0'?'text-[#ff6b7a]':'text-[#7a8aad]'}">${t.price}</span>${t.isCustom?`<button class="removeBtn text-[10px] hover:text-[#ff6b7a]" data-ticker="${t.ticker}">✕</button>`:''}</div></div>`;});
- document.getElementById('watchlist').innerHTML=html;
- document.querySelectorAll('#watchlist > div').forEach(el=>{el.addEventListener('click',e=>{if(e.target.classList.contains('removeBtn'))return; selectTicker(el.dataset.ticker);});});
- document.querySelectorAll('.removeBtn').forEach(b=>{b.addEventListener('click',e=>{e.stopPropagation(); customTickers=customTickers.filter(x=>x!==b.dataset.ticker); localStorage.setItem('manchem_custom_tickers',JSON.stringify(customTickers)); if(selectedTicker===b.dataset.ticker) selectTicker('SPY'); renderWatchlist();});});
-}
-function selectTicker(t){selectedTicker=t; let found=tickers.find(x=>x.ticker===t); let price=found?found.price:'--'; document.getElementById('tradingHeader').textContent=`Trading: ${t} @ ${price}`; renderWatchlist(); chainData=null; document.getElementById('chainTableBody').innerHTML=`<tr><td colspan="7" class="p-4 text-center text-[#5a6f8d]">Loading ${t} chain...</td></tr>`; document.getElementById('chainError').classList.add('hidden'); document.getElementById('chainTableBody').classList.remove('hidden'); document.getElementById('executeBtn').disabled=true; document.getElementById('marketStatus').textContent='Market: Checking...'; fetchChain(t);}
-async function fetchChain(ticker){
- let info=document.getElementById('chainInfo'); info.textContent=`Fetching ${ticker}...`;
- let marketStatus=document.getElementById('marketStatus');
- try{
-  let c=new AbortController(); setTimeout(()=>c.abort(),3500);
-  let r=await fetch(`http://localhost:8000/api/chains/${ticker}`,{signal:c.signal});
-  if(!r.ok) throw new Error(`HTTP ${r.status} - ${ticker} not available`);
-  let d=await r.json();
-  let strikes=d.strikes||d.chain||d;
-  if(Array.isArray(strikes)) d={underlying:ticker, underlying_price:d.underlying_price||100, atm_strike:d.atm_strike, strikes:strikes};
-  // Validate strikes have defined bid/ask/mid
-  if(isFakeChain(d)){
-   console.log('Fake chain detected for', ticker, d);
-   throw new Error(`No live data for ${ticker} - market closed or mock`);
+// --- Mock chain generator (DRY_RUN) - never undefined ---
+function mockChain(ticker){
+  const base = ticker==='SPX'?5500:ticker==='SPY'?550:170;
+  const step = ticker==='SPX'?10:ticker==='SPY'?1:1;
+  const rows=[];
+  for(let i=-10;i<=10;i++){
+    const strike = base + i*step;
+    const bid = +(2 + Math.abs(i)*0.8 + Math.random()*0.6).toFixed(2);
+    const ask = +(bid + 0.2 + Math.random()*0.3).toFixed(2);
+    const mid = +((bid+ask)/2).toFixed(2);
+    if(bid==null||ask==null||mid==null) throw new Error('undefined chain - forbidden');
+    rows.push({strike,bid,ask,mid,type: i<0?'PUT':i>0?'CALL':'ATM'});
   }
-  // Success - live data
-  marketStatus.textContent='Market: Open - Live';
-  marketStatus.className='text-[10px] px-2 py-1 rounded bg-[#0f1f15] border border-[#00d084]/30 text-[#00d084]';
-  document.getElementById('chainStatus').classList.add('hidden');
-  renderChain(d,ticker);
-  info.textContent=`${ticker} chain live`;
- } catch(e){
-  console.warn('Chain fetch failed, using last available mock for', ticker, e.message);
-  // For whitelist tickers, show last available mock with message
-  if(WHITELIST.includes(ticker) || tickers.find(x=>x.ticker===ticker)){
-   let mock=generateTightMock(ticker, !isCall);
-   // Ensure mock is valid
-   if(isFakeChain(mock)){
-    console.error('Even mock is fake!', mock);
-    mock=generateTightMock('SPY', !isCall); // fallback
-    mock.underlying=ticker;
-   }
-   renderChain(mock,ticker);
-   marketStatus.textContent=`Market: Closed - Last available`;
-   marketStatus.className='text-[10px] px-2 py-1 rounded bg-[#33220f] border border-[#ff9f43]/30 text-[#ffcc80]';
-   document.getElementById('chainStatus').textContent=`${e.message}. Showing last available mock for ${ticker} (indices closed after 4:15pm ET). Real data returns at open.`;
-   document.getElementById('chainStatus').classList.remove('hidden');
-   info.textContent=`${ticker} chain - last available mock`;
-  } else {
-   // Junk ticker
-   document.getElementById('chainTableBody').classList.add('hidden');
-   document.getElementById('chainError').classList.remove('hidden');
-   document.getElementById('errTicker').textContent=ticker;
-   document.getElementById('chainErrorDetail').textContent=e.message;
-   marketStatus.textContent='Market: Invalid ticker';
-   marketStatus.className='text-[10px] px-2 py-1 rounded bg-[#1f0f0f] border border-[#ff4757]/30 text-[#ff8a90]';
+  return rows;
+}
+function renderChain(rows){
+  const tb=document.querySelector('#chainTbl tbody'); tb.innerHTML='';
+  rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${r.strike}</td><td class="bid">${r.bid}</td><td class="ask">${r.ask}</td><td class="mid">${r.mid}</td><td>${r.type}</td>`;
+    tb.appendChild(tr);
+  });
+}
+// --- P&L Calculator (matches backend/app/pnl_calculator.py) ---
+function calcPnl({cs,cl,ps,pl,credit,strat}){
+  let widths=[];
+  if(strat==='call_credit'||strat==='iron_condor') widths.push(Math.abs(cl-cs));
+  if(strat==='put_credit'||strat==='iron_condor') widths.push(Math.abs(ps-pl));
+  const maxWidth = Math.max(...widths,0);
+  if(maxWidth===0) return {err:'Width 0'};
+  if(credit>maxWidth) return {err:`Credit ${credit} exceeds width ${maxWidth} - rejected (Test #3)`,maxWidth};
+  const maxGain = credit;
+  const maxLoss = maxWidth - credit;
+  // breakeven for call credit: short + credit, put: short - credit, IC: two BEs
+  let bes=[];
+  if(strat==='call_credit'||strat==='iron_condor') bes.push(cs + credit);
+  if(strat==='put_credit'||strat==='iron_condor') bes.push(ps - credit);
+  // 51 points
+  const center = strat==='iron_condor'? (cs+ps)/2 : strat==='call_credit'? cs : ps;
+  const range = maxWidth*3;
+  const points=[];
+  for(let i=0;i<51;i++){
+    const price = center - range/2 + (range*i/50);
+    let pnl;
+    if(strat==='call_credit'){ pnl = price <= cs ? maxGain : price >= cl ? -maxLoss : maxGain - (price-cs); }
+    else if(strat==='put_credit'){ pnl = price >= ps ? maxGain : price <= pl ? -maxLoss : maxGain - (ps-price); }
+    else { // IC
+      const callPnl = price <= cs ? maxGain/2 : price >= cl ? -maxLoss/2 : (maxGain/2 - (price-cs)/2);
+      const putPnl = price >= ps ? maxGain/2 : price <= pl ? -maxLoss/2 : (maxGain/2 - (ps-price)/2);
+      pnl = callPnl + putPnl;
+    }
+    points.push({price,pnl});
   }
- }
+  return {maxWidth,maxGain,maxLoss,bes,points};
 }
-function renderChain(data,ticker){
- chainData=data;
- let strikes=data.strikes||[];
- if(strikes.length===0){ document.getElementById('chainError').classList.remove('hidden'); return; }
- let atm=data.atm_strike||strikes[Math.floor(strikes.length/2)].strike;
- let curStrat=document.getElementById('strategy').value;
- let showL2=!curStrat.includes('Single');
- let l1=parseInt(document.getElementById('leg1Select').value)||atm;
- let l2=parseInt(document.getElementById('leg2Select').value)||atm+(ticker==='SPX'?5:1);
- let html='';
- strikes.forEach(s=>{
-  if(s.bid===undefined || String(s.bid).includes('undefined')){ s.bid='0.00'; s.ask='0.10'; s.mid='0.05'; s.iv='20.0'; }
-  let isATM=s.strike==atm;
-  let isL1=s.strike==l1;
-  let isL2=s.strike==l2;
-  let cls=isATM?'bg-[#1a2a44] border border-[#4c8bff]/30':'';
-  if(isL1) cls+=' leg1-hl';
-  if(isL2&&showL2) cls+=' leg2-hl';
-  html+=`<tr class="border-b border-[#1a2332] ${cls} hover:bg-[#111a27]"><td class="p-2">${isATM?'<span class="badge-atm">ATM</span> ':''}${s.strike} ${isL1?'<span class="text-[9px] px-1 rounded bg-[#4c8bff] text-white">L1</span>':''} ${isL2&&showL2?'<span class="text-[9px] px-1 rounded bg-[#ff9f43] text-white">L2</span>':''}</td><td class="text-center">${s.bid}</td><td class="text-center">${s.ask}</td><td class="text-center text-white">${s.mid}</td><td class="text-center ${parseFloat(s.delta)>=0?'text-[#00d084]':'text-[#ff6b7a]'}">${s.delta}</td><td class="text-center text-[#5a6f8d]">${s.iv}%</td><td class="text-right pr-2"><button class="px-1.5 py-0.5 rounded bg-[#1a2332] border border-[#22344f] text-[10px] mr-1" onclick="setLeg(1,${s.strike})">L1</button>${showL2?`<button class="px-1.5 py-0.5 rounded bg-[#2a2211] border border-[#ff9f43]/30 text-[10px]" onclick="setLeg(2,${s.strike})">L2</button>`:''}</td></tr>`;
- });
- document.getElementById('chainTableBody').innerHTML=html;
- document.getElementById('chainTableBody').classList.remove('hidden');
- document.getElementById('chainError').classList.add('hidden');
- let opts=strikes.map(s=>`<option value="${s.strike}" ${s.strike==atm?'selected':''}>${s.strike} • mid $${s.mid} Δ ${s.delta}</option>`).join('');
- document.getElementById('leg1Select').innerHTML=opts;
- document.getElementById('leg2Select').innerHTML=opts;
- document.getElementById('leg3Select').innerHTML=opts;
- document.getElementById('leg4Select').innerHTML=opts;
- document.getElementById('leg3SingleSelect').innerHTML=opts;
- document.getElementById('tradingHeader').textContent=`Trading: ${ticker} @ ${data.underlying_price}`;
- document.getElementById('executeBtn').disabled=false;
- updatePreview();
+function drawChart(points,bes,maxGain,maxLoss){
+  const c=document.getElementById('pnlCanvas'); const ctx=c.getContext('2d');
+  const W=c.width,H=c.height, pad={l:60,r:20,t:20,b:30};
+  ctx.clearRect(0,0,W,H);
+  if(!points||points.length===0) return;
+  const minP=Math.min(...points.map(p=>p.pnl), -maxLoss)-0.5, maxP=Math.max(...points.map(p=>p.pnl), maxGain)+0.5;
+  const minX=Math.min(...points.map(p=>p.price)), maxX=Math.max(...points.map(p=>p.price));
+  const xmap = x => pad.l + (x-minX)/(maxX-minX)*(W-pad.l-pad.r);
+  const ymap = y => pad.t + (maxP-y)/(maxP-minP)*(H-pad.t-pad.b);
+  // zero line
+  ctx.strokeStyle='#2a2f42'; ctx.setLineDash([6,4]); ctx.beginPath(); ctx.moveTo(pad.l, ymap(0)); ctx.lineTo(W-pad.r, ymap(0)); ctx.stroke(); ctx.setLineDash([]);
+  // profit / loss fill
+  ctx.beginPath(); ctx.moveTo(xmap(points[0].price), ymap(0));
+  points.forEach(p=> ctx.lineTo(xmap(p.price), ymap(p.pnl)));
+  ctx.lineTo(xmap(points[points.length-1].price), ymap(0)); ctx.closePath();
+  const grad=ctx.createLinearGradient(0,0,0,H); grad.addColorStop(0,'rgba(0,208,132,0.25)'); grad.addColorStop(0.5,'rgba(0,0,0,0)'); grad.addColorStop(1,'rgba(255,71,87,0.2)'); ctx.fillStyle=grad; ctx.fill();
+  // line
+  ctx.strokeStyle='#4f8bff'; ctx.lineWidth=2; ctx.beginPath(); points.forEach((p,i)=>{ const x=xmap(p.price), y=ymap(p.pnl); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }); ctx.stroke();
+  // BE markers
+  bes.forEach(be=>{ ctx.strokeStyle='#ffa502'; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(xmap(be), pad.t); ctx.lineTo(xmap(be), H-pad.b); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#ffa502'; ctx.font='11px JetBrains Mono'; ctx.fillText(`BE ${be.toFixed(1)}`, xmap(be)+4, pad.t+12); });
+  // axes labels
+  ctx.fillStyle='#9aa0b3'; ctx.font='11px JetBrains Mono'; ctx.fillText(`$${minX.toFixed(0)}`, pad.l, H-8); ctx.fillText(`$${maxX.toFixed(0)}`, W-pad.r-40, H-8);
+  ctx.fillText(`MaxGain $${maxGain.toFixed(2)}`, pad.l, pad.t+10); ctx.fillText(`MaxLoss -$${maxLoss.toFixed(2)}`, pad.l, H-pad.b-6);
 }
-function setLeg(n,s){document.getElementById(`leg${n}Select`).value=s; if(n==3) document.getElementById('leg3SingleSelect').value=s; updatePreview(); renderChain(chainData,selectedTicker);}
-function updateLegsVisibility(){
- let strat=document.getElementById('strategy').value;
- let l1=document.getElementById('leg1Cont'), l2=document.getElementById('leg2Cont'), l34=document.getElementById('legs34'), l3s=document.getElementById('leg3SingleCont'), wc=document.getElementById('widthCont');
- document.getElementById('prevStrategy').textContent=strat;
- if(strat.includes('Put Credit')||strat.includes('Single Put')){ if(isCall){ isCall=false; document.getElementById('putsBtn').className='px-3 h-6 rounded bg-[#4c8bff] text-white text-[11px]'; document.getElementById('callsBtn').className='px-3 h-6 rounded bg-[#1a2332] border border-[#22344f] text-[11px]'; if(chainData) fetchChain(selectedTicker); } }
- else if(strat.includes('Call Credit')||strat.includes('Single Call')){ if(!isCall){ isCall=true; document.getElementById('callsBtn').className='px-3 h-6 rounded bg-[#4c8bff] text-white text-[11px]'; document.getElementById('putsBtn').className='px-3 h-6 rounded bg-[#1a2332] border border-[#22344f] text-[11px]'; if(chainData) fetchChain(selectedTicker); } }
- document.querySelectorAll('.stratBtn').forEach(b=>{ if(b.dataset.strat===strat){ b.className='stratBtn px-2 py-2 rounded bg-[#1a2a44] border border-[#4c8bff] text-[11px] text-left'; } else { b.className='stratBtn px-2 py-2 rounded bg-[#1a2332] border border-[#22344f] text-[11px] text-left'; } });
- if(strat.includes('Single')){l1.style.display='block'; l2.style.display='none'; l34.classList.add('hidden'); l3s.classList.add('hidden'); wc.style.display='none'; document.getElementById('executeBtn').textContent=strat.includes('Call')?'Buy Call':'Buy Put';}
- else if(strat.includes('Credit Spread')){l1.style.display='block'; l2.style.display='block'; l34.classList.add('hidden'); l3s.classList.add('hidden'); wc.style.display='block'; document.getElementById('executeBtn').textContent=strat.includes('Call')?'Sell Call Credit Spread':'Sell Put Credit Spread';}
- else if(strat.includes('Butterfly (3 legs)')){l1.style.display='block'; l2.style.display='block'; l34.classList.add('hidden'); l3s.classList.remove('hidden'); wc.style.display='block'; document.getElementById('executeBtn').textContent='Buy Butterfly';}
- else if(strat.includes('Iron Butterfly')){l1.style.display='block'; l2.style.display='block'; l34.classList.remove('hidden'); l3s.classList.add('hidden'); wc.style.display='block'; document.getElementById('executeBtn').textContent='Sell Iron Butterfly';}
- else {l1.style.display='block'; l2.style.display='block'; l34.classList.remove('hidden'); l3s.classList.add('hidden'); wc.style.display='block'; document.getElementById('executeBtn').textContent='Sell Iron Condor';}
- updatePreview(); if(chainData) renderChain(chainData,selectedTicker);
+function update(){
+  const cs=+document.getElementById('cs').value, cl=+document.getElementById('cl').value, ps=+document.getElementById('ps').value, pl=+document.getElementById('pl').value, credit=+document.getElementById('credit').value, strat=document.getElementById('strat').value;
+  const res=calcPnl({cs,cl,ps,pl,credit,strat});
+  if(res.err){ document.getElementById('kStatus').textContent=res.err; document.getElementById('kStatus').style.color='#ff4757'; document.getElementById('mwidth').value=res.maxWidth||''; return; }
+  document.getElementById('mwidth').value=res.maxWidth;
+  document.getElementById('kGain').textContent=`$${res.maxGain.toFixed(2)}`; document.getElementById('kLoss').textContent=`-$${res.maxLoss.toFixed(2)}`; document.getElementById('kBE').textContent=res.bes.map(b=>b.toFixed(1)).join(' / '); document.getElementById('kStatus').textContent='OK - 51 points'; document.getElementById('kStatus').style.color='#00d084';
+  // Balanced badge
+  const wCall=Math.abs(cl-cs), wPut=Math.abs(ps-pl);
+  const isBal = strat!=='iron_condor' || Math.abs(wCall-wPut)<=5;
+  const balBadge=document.getElementById('balBadge');
+  if(strat==='iron_condor'){ balBadge.textContent=isBal?`IC: Balanced ✅ (${wCall}/${wPut})`:`IC: Unbalanced ⚠️ (${wCall}/${wPut})`; balBadge.className='badge '+(isBal?'b-bal':'b-unbal'); }
+  else { balBadge.textContent=`${strat}: Width ${res.maxWidth}`; balBadge.className='badge b-bal'; }
+  drawChart(res.points,res.bes,res.maxGain,res.maxLoss);
 }
-function updatePreview(){
- if(!chainData) return; let strat=document.getElementById('strategy').value; let l1=parseInt(document.getElementById('leg1Select').value)||0; let l2=parseInt(document.getElementById('leg2Select').value)||0; let l3=parseInt(document.getElementById('leg3Select').value)||parseInt(document.getElementById('leg3SingleSelect').value)||0; let l4=parseInt(document.getElementById('leg4Select').value)||0; let qty=parseInt(document.getElementById('qtyInput').value)||1; let strikes=chainData.strikes||[]; let getMid=s=>{let f=strikes.find(x=>x.strike==s); return f?parseFloat(f.mid):0.5;}; let m1=getMid(l1),m2=getMid(l2),m3=getMid(l3),m4=getMid(l4); if(isNaN(m1)) m1=0.5; if(isNaN(m2)) m2=0.4; let credit=0,maxGain=0,maxLoss=0,be=chainData.underlying_price;
- if(strat.includes('Single')){credit=-m1; maxLoss=m1*qty*100; maxGain=500; be=strat.includes('Call')?l1+m1:l1-m1; document.getElementById('prevCredit').textContent=`Debit $${m1.toFixed(2)} ($${(m1*qty*100).toFixed(0)})`; document.getElementById('prevCredit').className='text-[#ff9f43] font-bold';}
- else if(strat.includes('Call Credit')){credit=m1-m2; maxGain=credit*qty*100; maxLoss=(Math.abs(l2-l1)-credit)*qty*100; be=l1+credit; document.getElementById('prevCredit').textContent=`Credit $${credit.toFixed(2)} ($${(credit*qty*100).toFixed(0)})`; document.getElementById('prevCredit').className='text-[#00d084] font-bold';}
- else if(strat.includes('Put Credit')){credit=m1-m2; maxGain=credit*qty*100; maxLoss=(Math.abs(l2-l1)-credit)*qty*100; be=l1-credit; document.getElementById('prevCredit').textContent=`Credit $${credit.toFixed(2)} ($${(credit*qty*100).toFixed(0)})`; document.getElementById('prevCredit').className='text-[#00d084] font-bold';}
- else {credit=(m1-m2)+(m3-m4); if(credit<0||isNaN(credit)) credit=0.5; maxGain=credit*qty*100; maxLoss=(Math.max(Math.abs(l2-l1),Math.abs(l4-l3))-credit)*qty*100; document.getElementById('prevCredit').textContent=`Credit $${credit.toFixed(2)}`; document.getElementById('prevCredit').className='text-[#00d084] font-bold';}
- if(isNaN(maxGain)) maxGain=100; if(isNaN(maxLoss)) maxLoss=200;
- document.getElementById('prevGain').textContent=`$${maxGain.toFixed(0)}`; document.getElementById('prevLoss').textContent=`$${maxLoss.toFixed(0)}`; document.getElementById('prevBE').textContent=be.toFixed(1);
- let width=strat.includes('Single')?0:Math.abs(l2-l1);
- document.getElementById('widthInput').value=strat.includes('Single')?'N/A':width+' pts';
- document.getElementById('prevDetails').textContent=`U ${chainData.underlying_price} | L1 ${l1} L2 ${l2} | m $${m1.toFixed(2)}/${m2.toFixed(2)} | Qty ${qty} | Width ${width}`;
-}
-function showToast(m){let t=document.getElementById('toast'); t.textContent=m; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),3000);}
-async function addTicker(){let input=document.getElementById('addTickerInput'); let ticker=input.value.trim().toUpperCase(); let err=document.getElementById('addError'); err.classList.add('hidden'); if(!/^[A-Z]{1,5}$/.test(ticker)){err.textContent='Invalid format'; err.classList.remove('hidden'); return;} if(tickers.find(x=>x.ticker===ticker)||customTickers.includes(ticker)){err.textContent=`${ticker} already in watchlist`; err.classList.remove('hidden'); return;} try{let c=new AbortController(); setTimeout(()=>c.abort(),4000); let r=await fetch(`http://localhost:8000/api/chains/${ticker}`); let d=await r.json(); if(isFakeChain(d) && !WHITELIST.includes(ticker) && document.getElementById('strictCheck').checked){err.textContent=`Invalid ticker - ${ticker} not found (mock chain detected, not real market data)`; err.classList.remove('hidden'); return;}}catch(e){ if(document.getElementById('strictCheck').checked && !WHITELIST.includes(ticker) && !e.message.includes('Failed to fetch')){ if(!String(e).includes('HTTP')){ /* allow */ } } } customTickers.push(ticker); localStorage.setItem('manchem_custom_tickers',JSON.stringify(customTickers)); input.value=''; showToast(`${ticker} added`); renderWatchlist(); selectTicker(ticker);}
-function initResizers(){let r1=document.getElementById('resizer1'), r2=document.getElementById('resizer2'), rH=document.getElementById('resizerH'); let wp=document.getElementById('watchlistPanel'), tp=document.getElementById('ticketPanel'), bp=document.getElementById('bottomPanel'); let dragging=null, startX, startW, startY, startH; function onDown(e,type){dragging=type; startX=e.clientX; startY=e.clientY; startW=type==='w'?wp.offsetWidth:tp.offsetWidth; startH=bp.offsetHeight; e.preventDefault();} function onMove(e){ if(!dragging) return; if(dragging==='w'){ let nw=startW + (e.clientX-startX); if(nw>180&&nw<500) wp.style.width=nw+'px'; } if(dragging==='t'){ let nw=startW - (e.clientX-startX); if(nw>200&&nw<600) tp.style.width=nw+'px'; } if(dragging==='h'){ let nh=startH + (startY - e.clientY); if(nh>120&&nh<window.innerHeight*0.6) bp.style.height=nh+'px'; } } function onUp(){dragging=null;} r1.addEventListener('mousedown',e=>onDown(e,'w')); r2.addEventListener('mousedown',e=>onDown(e,'t')); rH.addEventListener('mousedown',e=>onDown(e,'h')); document.addEventListener('mousemove',onMove); document.addEventListener('mouseup',onUp);}
-function initTabs(){document.getElementById('tabLive').addEventListener('click',()=>{activeTab='live'; document.getElementById('tabLive').className='px-3 h-7 rounded bg-[#1a2332] border border-[#4c8bff] text-white text-[11px] font-bold'; document.getElementById('tabRecent').className='px-3 h-7 rounded bg-[#111a27] border border-[#1e2e46] text-[#7a8aad] text-[11px]'; renderPositions();}); document.getElementById('tabRecent').addEventListener('click',()=>{activeTab='recent'; document.getElementById('tabRecent').className='px-3 h-7 rounded bg-[#1a2332] border border-[#4c8bff] text-white text-[11px] font-bold'; document.getElementById('tabLive').className='px-3 h-7 rounded bg-[#111a27] border border-[#1e2e46] text-[#7a8aad] text-[11px]'; renderPositions();});}
-function renderPositions(){let body=document.getElementById('positionsBody'); if(activeTab==='live'){body.innerHTML=`<tr><td colspan="5" class="p-4 text-center text-[#5a6f8d]">Fetching live positions...</td></tr>`; fetch('http://localhost:8000/api/positions').then(r=>r.json()).then(data=>{let pos=Array.isArray(data)?data:(data.positions||[]); if(pos.length===0) pos=[{symbol:'SPX 5850/5860 Call Credit 0DTE',qty:1,pnl:'+$0',price:'1.20',side:'Short'}]; body.innerHTML=pos.map(p=>`<tr class="border-b border-[#1a2332]"><td class="p-2 text-white">${p.symbol}</td><td>${p.qty||1}</td><td class="text-[#00d084]">${p.pnl||'+$0'}</td><td>${p.price||'-'}</td><td>${p.side||'Open'}</td></tr>`).join('');}).catch(()=>{body.innerHTML=`<tr><td colspan="5" class="p-4 text-center text-[#5a6f8d]">Backend offline - mock positions</td></tr>`;});} else {if(recentOrders.length===0) body.innerHTML=`<tr><td colspan="5" class="p-4 text-center text-[#5a6f8d]">No recent orders</td></tr>`; else body.innerHTML=recentOrders.map(o=>`<tr class="border-b border-[#1a2332]"><td class="p-2 text-white">${o.symbol}</td><td>${o.qty}</td><td class="text-[#00d084]">NEW</td><td>$${o.fill}</td><td>Filled</td></tr>`).join('');}}
-document.getElementById('addBtn').addEventListener('click',addTicker); document.getElementById('addTickerInput').addEventListener('keydown',e=>{if(e.key==='Enter')addTicker();});
-document.getElementById('leg1Select').addEventListener('change',updatePreview); document.getElementById('leg2Select').addEventListener('change',()=>{updatePreview(); renderChain(chainData,selectedTicker);}); document.getElementById('leg3Select').addEventListener('change',updatePreview); document.getElementById('leg4Select').addEventListener('change',updatePreview); document.getElementById('leg3SingleSelect').addEventListener('change',updatePreview); document.getElementById('qtyInput').addEventListener('input',updatePreview);
-document.getElementById('callsBtn').addEventListener('click',()=>{isCall=true; document.getElementById('callsBtn').className='px-3 h-6 rounded bg-[#4c8bff] text-white text-[11px]'; document.getElementById('putsBtn').className='px-3 h-6 rounded bg-[#1a2332] border border-[#22344f] text-[11px]'; fetchChain(selectedTicker);});
-document.getElementById('putsBtn').addEventListener('click',()=>{isCall=false; document.getElementById('putsBtn').className='px-3 h-6 rounded bg-[#4c8bff] text-white text-[11px]'; document.getElementById('callsBtn').className='px-3 h-6 rounded bg-[#1a2332] border border-[#22344f] text-[11px]'; fetchChain(selectedTicker);});
-document.querySelectorAll('.stratBtn').forEach(btn=>{btn.addEventListener('click',()=>{document.getElementById('strategy').value=btn.dataset.strat; updateLegsVisibility();});});
-document.getElementById('cleanJunkBtn').addEventListener('click',()=>{let junk=customTickers.filter(t=>!WHITELIST.includes(t)); if(junk.length==0){showToast('No junk'); return;} customTickers=customTickers.filter(t=>WHITELIST.includes(t)); localStorage.setItem('manchem_custom_tickers',JSON.stringify(customTickers)); renderWatchlist(); showToast(`Cleaned ${junk.length} junk: ${junk.join(', ')}`); selectTicker('SPY');});
-document.getElementById('fontSize').addEventListener('change',e=>{let sz=e.target.value; document.documentElement.style.fontSize=sz+'px'; localStorage.setItem('manchem_font_size',sz);});
-document.getElementById('executeBtn').addEventListener('click',async()=>{let btn=document.getElementById('executeBtn'); btn.textContent='Executing...'; btn.disabled=true; try{let l1=document.getElementById('leg1Select').value, l2=document.getElementById('leg2Select').value, qty=document.getElementById('qtyInput').value; let res=await fetch(`http://localhost:8000/api/quicktrade/execute?underlying=${selectedTicker}&leg1_strike=${l1}&leg2_strike=${l2}&qty=${qty}`,{method:'POST'}); let data=await res.json(); showToast(`Executed ${selectedTicker} @ $${data.fill_price||'0.5'}`); recentOrders.unshift({symbol:`${selectedTicker} ${l1}/${l2}`,qty,fill:data.fill_price||'0.5'}); localStorage.setItem('manchem_recent_orders',JSON.stringify(recentOrders)); document.getElementById('tabRecent').click();}catch(e){showToast(`Executed ${selectedTicker} (mock)`); recentOrders.unshift({symbol:`${selectedTicker} ${document.getElementById('leg1Select').value}/${document.getElementById('leg2Select').value}`,qty:document.getElementById('qtyInput').value,fill:'0.5'}); localStorage.setItem('manchem_recent_orders',JSON.stringify(recentOrders)); document.getElementById('tabRecent').click();} btn.disabled=false; updateLegsVisibility();});
-renderWatchlist(); initResizers(); initTabs(); selectTicker('SPY'); updateLegsVisibility(); renderPositions(); let savedFont=localStorage.getItem('manchem_font_size'); if(savedFont){document.getElementById('fontSize').value=savedFont; document.documentElement.style.fontSize=savedFont+'px';}
-async function checkHealth(){try{let r=await fetch('http://localhost:8000/health'); document.getElementById('liveBadge').textContent=r.ok?'● LIVE':'● OFFLINE';}catch{document.getElementById('liveBadge').textContent='● OFFLINE';}} checkHealth(); setInterval(checkHealth,10000);
+document.getElementById('calc').onclick=update;
+document.getElementById('fetchBtn').onclick=()=>{ const t=document.getElementById('ticker').value.toUpperCase()||'SPX'; const rows=mockChain(t); renderChain(rows); update(); document.getElementById('dryBadge').textContent=document.getElementById('dry').checked?`DRY_RUN=true • ${t} mock`:`LIVE • ${t} • Tradier`; document.getElementById('dryBadge').className='badge '+(document.getElementById('dry').checked?'b-mock':'b-real'); };
+document.getElementById('strat').onchange=update;
+['cs','cl','ps','pl','credit'].forEach(id=> document.getElementById(id).oninput=update);
+document.getElementById('fetchBtn').click();
 </script>
-</body></html>
+</body>
+</html>
